@@ -89,29 +89,64 @@ export async function createUser(email: string, passwordHash: string, username: 
   return result[0]
 }
 
-export async function getUserFavorites(userId: number) {
+export async function getUserListStatus(userId: number, releaseId: number) {
   const result = await sql`
-    SELECT r.* FROM releases r
-    JOIN user_favorites uf ON r.id = uf.release_id
-    WHERE uf.user_id = ${userId}
-    ORDER BY uf.created_at DESC
-  `
-  return result
-}
-
-export async function addToFavorites(userId: number, releaseId: number) {
-  await sql`
-    INSERT INTO user_favorites (user_id, release_id)
-    VALUES (${userId}, ${releaseId})
-    ON CONFLICT (user_id, release_id) DO NOTHING
-  `
-}
-
-export async function removeFromFavorites(userId: number, releaseId: number) {
-  await sql`
-    DELETE FROM user_favorites
+    SELECT status FROM user_lists
     WHERE user_id = ${userId} AND release_id = ${releaseId}
   `
+  return result[0]?.status || null
+}
+
+export async function addToList(userId: number, releaseId: number, status: string) {
+  const result = await sql`
+    INSERT INTO user_lists (user_id, release_id, status)
+    VALUES (${userId}, ${releaseId}, ${status})
+    ON CONFLICT (user_id, release_id) 
+    DO UPDATE SET status = ${status}, updated_at = CURRENT_TIMESTAMP
+    RETURNING *
+  `
+  return result[0]
+}
+
+export async function removeFromList(userId: number, releaseId: number) {
+  await sql`
+    DELETE FROM user_lists
+    WHERE user_id = ${userId} AND release_id = ${releaseId}
+  `
+}
+
+export async function getUserListsByStatus(userId: number, status?: string) {
+  if (status) {
+    const result = await sql`
+      SELECT r.*, ul.status, ul.created_at as added_at, ul.updated_at
+      FROM releases r
+      JOIN user_lists ul ON r.id = ul.release_id
+      WHERE ul.user_id = ${userId} AND ul.status = ${status}
+      ORDER BY ul.updated_at DESC
+    `
+    return result
+  } else {
+    const result = await sql`
+      SELECT r.*, ul.status, ul.created_at as added_at, ul.updated_at
+      FROM releases r
+      JOIN user_lists ul ON r.id = ul.release_id
+      WHERE ul.user_id = ${userId}
+      ORDER BY ul.updated_at DESC
+    `
+    return result
+  }
+}
+
+export async function getUserListsCount(userId: number) {
+  const result = await sql`
+    SELECT 
+      status,
+      COUNT(*) as count
+    FROM user_lists
+    WHERE user_id = ${userId}
+    GROUP BY status
+  `
+  return result
 }
 
 export async function getAllReleases() {
@@ -310,7 +345,7 @@ export async function getReleasesByGenre(genre: string) {
 
 export async function isFavorite(userId: number, releaseId: number) {
   const result = await sql`
-    SELECT COUNT(*) as count FROM user_favorites
+    SELECT COUNT(*) as count FROM user_lists
     WHERE user_id = ${userId} AND release_id = ${releaseId}
   `
   return result[0].count > 0
@@ -321,6 +356,82 @@ export async function getReleasesByWeekday() {
     SELECT * FROM releases 
     WHERE release_day IS NOT NULL AND status = 'ongoing'
     ORDER BY release_day ASC, title_ru ASC
+  `
+  return result
+}
+
+export async function getContinueWatching(userId: number, limit = 12) {
+  const result = await sql`
+    SELECT DISTINCT ON (r.id)
+      e.id,
+      e.episode_number,
+      e.title as episode_title,
+      e.vk_video_url,
+      e.thumbnail_url,
+      e.duration,
+      r.id as release_id,
+      r.title,
+      r.title_ru,
+      r.cover_image_url,
+      r.total_episodes,
+      uwh.progress,
+      uwh.watched_at
+    FROM user_watch_history uwh
+    JOIN episodes e ON uwh.episode_id = e.id
+    JOIN releases r ON e.release_id = r.id
+    WHERE uwh.user_id = ${userId}
+      AND uwh.progress < 95
+    ORDER BY r.id, uwh.watched_at DESC
+    LIMIT ${limit}
+  `
+  return result
+}
+
+export async function updateWatchProgress(userId: number, episodeId: number, progress: number) {
+  const result = await sql`
+    INSERT INTO user_watch_history (user_id, episode_id, progress, watched_at)
+    VALUES (${userId}, ${episodeId}, ${progress}, CURRENT_TIMESTAMP)
+    ON CONFLICT (user_id, episode_id) 
+    DO UPDATE SET 
+      progress = ${progress},
+      watched_at = CURRENT_TIMESTAMP
+    RETURNING *
+  `
+  return result[0]
+}
+
+export async function getWatchProgress(userId: number, episodeId: number) {
+  const result = await sql`
+    SELECT progress FROM user_watch_history
+    WHERE user_id = ${userId} AND episode_id = ${episodeId}
+  `
+  return result[0]?.progress || 0
+}
+
+export async function addToFavorites(userId: number, releaseId: number) {
+  const result = await sql`
+    INSERT INTO user_favorites (user_id, release_id, created_at)
+    VALUES (${userId}, ${releaseId}, CURRENT_TIMESTAMP)
+    ON CONFLICT (user_id, release_id) DO NOTHING
+    RETURNING *
+  `
+  return result[0]
+}
+
+export async function removeFromFavorites(userId: number, releaseId: number) {
+  await sql`
+    DELETE FROM user_favorites
+    WHERE user_id = ${userId} AND release_id = ${releaseId}
+  `
+}
+
+export async function getUserFavorites(userId: number) {
+  const result = await sql`
+    SELECT r.*, uf.created_at as favorited_at
+    FROM releases r
+    JOIN user_favorites uf ON r.id = uf.release_id
+    WHERE uf.user_id = ${userId}
+    ORDER BY uf.created_at DESC
   `
   return result
 }

@@ -6,7 +6,7 @@ export default async function CatalogPage() {
 
   return (
     <main className="min-h-screen">
-      <div className="container px-4 py-8">
+      <div className="mx-auto max-w-7xl px-4 py-8">
         <div className="space-y-6">
           <div>
             <h1 className="text-3xl font-bold">Каталог аниме</h1>

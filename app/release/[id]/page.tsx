@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { getReleaseById, getEpisodesByReleaseId } from "@/lib/db"
 import { getSession } from "@/lib/auth"
-import { FavoriteButton } from "@/components/favorite-button"
+import { ListButton } from "@/components/list-button"
 
 interface ReleasePageProps {
   params: Promise<{
@@ -39,7 +39,7 @@ export default async function ReleasePage({ params }: ReleasePageProps) {
         <div className="absolute inset-0 bg-gradient-to-t from-background via-background/60 to-transparent" />
       </div>
 
-      <div className="container px-4 -mt-32 relative z-10">
+      <div className="mx-auto max-w-7xl px-4 -mt-32 relative z-10">
         <div className="flex flex-col md:flex-row gap-8">
           <div className="w-full md:w-64 shrink-0">
             <div className="aspect-[2/3] relative rounded-lg overflow-hidden shadow-2xl">
@@ -91,7 +91,7 @@ export default async function ReleasePage({ params }: ReleasePageProps) {
                     </Link>
                   </Button>
                 )}
-                <FavoriteButton releaseId={release.id} userId={user?.id || null} />
+                <ListButton releaseId={release.id} userId={user?.id || null} />
               </div>
             </div>
 

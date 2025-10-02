@@ -62,7 +62,7 @@ export function ScheduleClient({ releases }: ScheduleClientProps) {
 
   return (
     <main className="min-h-screen bg-background">
-      <div className="container px-4 py-6 md:py-8 space-y-6">
+      <div className="mx-auto max-w-7xl px-4 py-6 md:py-8 space-y-6">
         {/* Header */}
         <div className="space-y-4">
           <div>

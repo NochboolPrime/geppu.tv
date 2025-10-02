@@ -5,7 +5,7 @@ import { Mail, MessageCircle } from "lucide-react"
 export function Footer() {
   return (
     <footer className="border-t border-border bg-card mt-12">
-      <div className="container px-4 py-8">
+      <div className="mx-auto max-w-7xl px-4 py-8">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           {/* Logo and Description */}
           <div className="space-y-4">

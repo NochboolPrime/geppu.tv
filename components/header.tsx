@@ -2,12 +2,13 @@
 
 import Link from "next/link"
 import Image from "next/image"
-import { Search, Calendar, Menu } from "lucide-react"
+import { Search, Calendar, Menu, Shuffle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { UserMenu } from "./user-menu"
 import { SearchDialog } from "./search-dialog"
 import { useState } from "react"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
+import { useRouter } from "next/navigation"
 
 interface HeaderProps {
   user: { id: number; email: string; username: string; avatar_url: string | null } | null
@@ -16,6 +17,23 @@ interface HeaderProps {
 export function Header({ user }: HeaderProps) {
   const [searchOpen, setSearchOpen] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [randomLoading, setRandomLoading] = useState(false)
+  const router = useRouter()
+
+  const handleRandomRelease = async () => {
+    setRandomLoading(true)
+    try {
+      const response = await fetch("/api/releases/random")
+      const data = await response.json()
+      if (data.id) {
+        router.push(`/release/${data.id}`)
+      }
+    } catch (error) {
+      console.error("Failed to get random release:", error)
+    } finally {
+      setRandomLoading(false)
+    }
+  }
 
   return (
     <>
@@ -41,6 +59,16 @@ export function Header({ user }: HeaderProps) {
           <div className="flex items-center gap-1 md:gap-2">
             <Button variant="ghost" size="icon" onClick={() => setSearchOpen(true)} className="h-9 w-9">
               <Search className="h-4 w-4 md:h-5 md:w-5" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={handleRandomRelease}
+              disabled={randomLoading}
+              className="h-9 w-9"
+              title="Случайный релиз"
+            >
+              <Shuffle className="h-4 w-4 md:h-5 md:w-5" />
             </Button>
             <Button variant="ghost" size="icon" asChild className="hidden md:flex h-9 w-9">
               <Link href="/schedule">

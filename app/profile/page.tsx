@@ -1,6 +1,5 @@
 import { redirect } from "next/navigation"
 import { getSession } from "@/lib/auth"
-import { getUserFavorites } from "@/lib/db"
 import { ProfileContent } from "@/components/profile-content"
 
 export default async function ProfilePage() {
@@ -10,7 +9,5 @@ export default async function ProfilePage() {
     redirect("/")
   }
 
-  const favorites = await getUserFavorites(user.id)
-
-  return <ProfileContent user={user} initialFavorites={favorites} />
+  return <ProfileContent user={user} />
 }
