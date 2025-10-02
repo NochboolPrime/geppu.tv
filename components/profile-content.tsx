@@ -6,7 +6,7 @@ import { useState, useEffect } from "react"
 import Image from "next/image"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { Camera, UserIcon, Mail, Calendar, ListPlus } from "lucide-react"
+import { Camera, UserIcon, Mail, Calendar, ListPlus, LogOut } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -153,6 +153,16 @@ export function ProfileContent({ user }: ProfileContentProps) {
     }
   }
 
+  const handleLogout = async () => {
+    try {
+      await fetch("/api/auth/logout", { method: "POST" })
+      router.push("/")
+      router.refresh()
+    } catch (error) {
+      console.error("Logout error:", error)
+    }
+  }
+
   const currentStatusInfo = LIST_STATUSES.find((s) => s.value === selectedStatus)
 
   return (
@@ -197,6 +207,10 @@ export function ProfileContent({ user }: ProfileContentProps) {
                 <Calendar className="h-4 w-4" />
                 <span>Регистрация: {new Date(user.created_at).toLocaleDateString("ru-RU")}</span>
               </div>
+              <Button variant="destructive" className="w-full gap-2" onClick={handleLogout}>
+                <LogOut className="h-4 w-4" />
+                Выйти из аккаунта
+              </Button>
             </CardContent>
           </Card>
 
