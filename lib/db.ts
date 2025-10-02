@@ -242,6 +242,7 @@ export async function updateRelease(
     rating: string
     featured?: boolean
     featured_order?: number
+    release_day?: number | null
   },
 ) {
   const result = await sql`
@@ -257,7 +258,8 @@ export async function updateRelease(
       genres = ${data.genres},
       rating = ${data.rating},
       featured = ${data.featured ?? false},
-      featured_order = ${data.featured_order ?? 0}
+      featured_order = ${data.featured_order ?? 0},
+      release_day = ${data.release_day ?? null}
     WHERE id = ${id}
     RETURNING *
   `

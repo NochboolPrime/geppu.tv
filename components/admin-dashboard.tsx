@@ -29,6 +29,7 @@ type Release = {
   rating: string
   featured?: boolean
   featured_order?: number
+  release_day?: number | null
 }
 
 type Episode = {
@@ -57,6 +58,7 @@ export function AdminDashboard() {
     rating: "16+",
     featured: false,
     featured_order: "0",
+    release_day: null,
   })
 
   const [episodeForm, setEpisodeForm] = useState({
@@ -143,6 +145,7 @@ export function AdminDashboard() {
         rating: "16+",
         featured: false,
         featured_order: "0",
+        release_day: null,
       })
       fetchReleases()
     } catch (error) {
@@ -190,6 +193,7 @@ export function AdminDashboard() {
         rating: "16+",
         featured: false,
         featured_order: "0",
+        release_day: null,
       })
       fetchReleases()
     } catch (error) {
@@ -241,6 +245,7 @@ export function AdminDashboard() {
       rating: release.rating,
       featured: release.featured || false,
       featured_order: (release.featured_order || 0).toString(),
+      release_day: release.release_day || null,
     })
   }
 
@@ -384,10 +389,11 @@ export function AdminDashboard() {
         </div>
 
         <Tabs defaultValue="releases" className="w-full">
-          <TabsList className="grid w-full max-w-md grid-cols-3">
+          <TabsList className="grid w-full max-w-md grid-cols-4">
             <TabsTrigger value="releases">Релизы</TabsTrigger>
             <TabsTrigger value="manage">Управление</TabsTrigger>
             <TabsTrigger value="carousel">Карусель</TabsTrigger>
+            <TabsTrigger value="schedule">Расписание</TabsTrigger>
           </TabsList>
 
           <TabsContent value="releases" className="space-y-4">
@@ -422,6 +428,7 @@ export function AdminDashboard() {
                             rating: "16+",
                             featured: false,
                             featured_order: "0",
+                            release_day: null,
                           })
                         }}
                       >
@@ -743,74 +750,187 @@ export function AdminDashboard() {
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-3 max-h-[700px] overflow-y-auto">
-                {releases.map((release) => (
-                  <div key={release.id} className="flex items-center gap-4 p-4 border rounded-lg">
-                    <img
-                      src={release.cover_image_url || "/placeholder.svg"}
-                      alt={release.title_ru}
-                      className="w-16 h-20 object-cover rounded"
-                    />
-                    <div className="flex-1">
-                      <p className="font-medium">{release.title_ru}</p>
-                      <p className="text-sm text-muted-foreground">{release.title}</p>
-                    </div>
-                    <div className="flex items-center gap-4">
-                      <div className="flex items-center gap-2">
-                        <Checkbox
-                          id={`featured-${release.id}`}
-                          checked={release.featured || false}
-                          onCheckedChange={async (checked) => {
-                            try {
-                              await fetch("/api/admin/releases", {
-                                method: "PUT",
-                                headers: { "Content-Type": "application/json" },
-                                body: JSON.stringify({
-                                  id: release.id,
-                                  ...release,
-                                  featured: checked,
-                                }),
-                              })
-                              fetchReleases()
-                            } catch (error) {
-                              console.error("Update featured error:", error)
-                            }
-                          }}
-                        />
-                        <Label htmlFor={`featured-${release.id}`} className="cursor-pointer">
-                          В карусели
-                        </Label>
+                {releases
+                  .sort((a, b) => {
+                    if (a.featured && !b.featured) return -1
+                    if (!a.featured && b.featured) return 1
+                    return (a.featured_order || 0) - (b.featured_order || 0)
+                  })
+                  .map((release) => (
+                    <div key={release.id} className="flex items-center gap-4 p-4 border rounded-lg">
+                      <img
+                        src={release.cover_image_url || "/placeholder.svg"}
+                        alt={release.title_ru}
+                        className="w-16 h-20 object-cover rounded"
+                      />
+                      <div className="flex-1">
+                        <p className="font-medium">{release.title_ru}</p>
+                        <p className="text-sm text-muted-foreground">{release.title}</p>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <Label htmlFor={`order-${release.id}`} className="text-sm">
-                          Порядок:
-                        </Label>
-                        <Input
-                          id={`order-${release.id}`}
-                          type="number"
-                          value={release.featured_order || 0}
-                          onChange={async (e) => {
-                            try {
-                              await fetch("/api/admin/releases", {
-                                method: "PUT",
-                                headers: { "Content-Type": "application/json" },
-                                body: JSON.stringify({
-                                  id: release.id,
-                                  ...release,
-                                  featured_order: Number.parseInt(e.target.value) || 0,
-                                }),
-                              })
-                              fetchReleases()
-                            } catch (error) {
-                              console.error("Update order error:", error)
-                            }
-                          }}
-                          className="w-20"
-                          min="0"
-                        />
+                      <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-2">
+                          <Checkbox
+                            id={`featured-${release.id}`}
+                            checked={release.featured || false}
+                            onCheckedChange={async (checked) => {
+                              try {
+                                await fetch("/api/admin/releases", {
+                                  method: "PUT",
+                                  headers: { "Content-Type": "application/json" },
+                                  body: JSON.stringify({
+                                    id: release.id,
+                                    ...release,
+                                    featured: checked,
+                                  }),
+                                })
+                                fetchReleases()
+                              } catch (error) {
+                                console.error("Update featured error:", error)
+                              }
+                            }}
+                          />
+                          <Label htmlFor={`featured-${release.id}`} className="cursor-pointer">
+                            В карусели
+                          </Label>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Label htmlFor={`order-${release.id}`} className="text-sm">
+                            Порядок:
+                          </Label>
+                          <Input
+                            id={`order-${release.id}`}
+                            type="number"
+                            value={release.featured_order || 0}
+                            onChange={async (e) => {
+                              try {
+                                await fetch("/api/admin/releases", {
+                                  method: "PUT",
+                                  headers: { "Content-Type": "application/json" },
+                                  body: JSON.stringify({
+                                    id: release.id,
+                                    ...release,
+                                    featured_order: Number.parseInt(e.target.value) || 0,
+                                  }),
+                                })
+                                fetchReleases()
+                              } catch (error) {
+                                console.error("Update order error:", error)
+                              }
+                            }}
+                            className="w-20"
+                            min="0"
+                          />
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  ))}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="schedule" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Управление расписанием</CardTitle>
+                <CardDescription>
+                  Установите день недели выхода новых эпизодов для каждого релиза. Только онгоинги отображаются в
+                  расписании.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="space-y-3 max-h-[700px] overflow-y-auto pr-2">
+                  {releases
+                    .filter((r) => r.status === "ongoing")
+                    .sort((a, b) => {
+                      if (a.release_day === null && b.release_day === null) return 0
+                      if (a.release_day === null) return 1
+                      if (b.release_day === null) return -1
+                      return a.release_day - b.release_day
+                    })
+                    .map((release) => (
+                      <div key={release.id} className="flex items-center gap-4 p-4 border rounded-lg bg-card">
+                        <img
+                          src={release.cover_image_url || "/placeholder.svg"}
+                          alt={release.title_ru}
+                          className="w-16 h-20 object-cover rounded"
+                        />
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium truncate">{release.title_ru}</p>
+                          <p className="text-sm text-muted-foreground truncate">{release.title}</p>
+                        </div>
+                        <div className="flex flex-col gap-2 min-w-[180px]">
+                          <Label htmlFor={`day-${release.id}`} className="text-sm">
+                            День выхода:
+                          </Label>
+                          <Select
+                            value={release.release_day !== null ? release.release_day.toString() : "none"}
+                            onValueChange={async (value) => {
+                              console.log("[v0] Updating release day for", release.title_ru, "to", value)
+                              try {
+                                const response = await fetch("/api/admin/releases", {
+                                  method: "PUT",
+                                  headers: { "Content-Type": "application/json" },
+                                  body: JSON.stringify({
+                                    id: release.id,
+                                    title: release.title,
+                                    title_ru: release.title_ru,
+                                    description: release.description,
+                                    cover_image_url: release.cover_image_url,
+                                    year: release.year,
+                                    season: release.season,
+                                    total_episodes: release.total_episodes,
+                                    status: release.status,
+                                    genres: release.genres,
+                                    rating: release.rating,
+                                    featured: release.featured,
+                                    featured_order: release.featured_order,
+                                    release_day: value === "none" ? null : Number.parseInt(value),
+                                  }),
+                                })
+
+                                if (!response.ok) {
+                                  throw new Error("Failed to update")
+                                }
+
+                                console.log("[v0] Successfully updated release day")
+                                await fetchReleases()
+                              } catch (error) {
+                                console.error("[v0] Update release day error:", error)
+                                alert("Ошибка обновления дня выхода")
+                              }
+                            }}
+                          >
+                            <SelectTrigger id={`day-${release.id}`} className="w-full">
+                              <SelectValue placeholder="Выберите день" />
+                            </SelectTrigger>
+                            <SelectContent position="popper" sideOffset={5}>
+                              <SelectItem value="none">Не указан</SelectItem>
+                              <SelectItem value="1">Понедельник</SelectItem>
+                              <SelectItem value="2">Вторник</SelectItem>
+                              <SelectItem value="3">Среда</SelectItem>
+                              <SelectItem value="4">Четверг</SelectItem>
+                              <SelectItem value="5">Пятница</SelectItem>
+                              <SelectItem value="6">Суббота</SelectItem>
+                              <SelectItem value="0">Воскресенье</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          {release.release_day !== null && (
+                            <p className="text-xs text-muted-foreground">
+                              Текущий день:{" "}
+                              {
+                                ["Воскресенье", "Понедельник", "Вторник", "Среда", "Четверг", "Пятница", "Суббота"][
+                                  release.release_day
+                                ]
+                              }
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  {releases.filter((r) => r.status === "ongoing").length === 0 && (
+                    <div className="text-center py-8 text-muted-foreground">Нет онгоингов для настройки расписания</div>
+                  )}
+                </div>
               </CardContent>
             </Card>
           </TabsContent>

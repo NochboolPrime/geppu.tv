@@ -55,6 +55,8 @@ export async function PUT(request: NextRequest) {
 
     const data = await request.json()
 
+    console.log("[v0 SERVER] Updating release:", data.id, "with release_day:", data.release_day)
+
     const release = await updateRelease(data.id, {
       title: data.title,
       title_ru: data.title_ru,
@@ -68,7 +70,15 @@ export async function PUT(request: NextRequest) {
       rating: data.rating,
       featured: data.featured,
       featured_order: data.featured_order ? Number.parseInt(data.featured_order) : 0,
+      release_day:
+        data.release_day !== undefined
+          ? data.release_day === null
+            ? null
+            : Number.parseInt(data.release_day)
+          : undefined,
     })
+
+    console.log("[v0 SERVER] Release updated successfully, release_day is now:", release.release_day)
 
     return NextResponse.json({ success: true, release })
   } catch (error) {

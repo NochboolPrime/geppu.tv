@@ -13,29 +13,26 @@ export default async function HomePage() {
   // TODO: Replace with actual authenticated user ID
   const continueWatching = await getContinueWatching(1, 12)
 
-  const heroSlides = (
+  const heroSlides =
     featuredReleases.length > 0
-      ? featuredReleases
-      : todayReleases.length > 0
-        ? todayReleases
-        : latestEpisodes.slice(0, 5)
-  ).map((item) => ({
-    id: item.id,
-    release_id: "release_id" in item ? item.release_id : item.id,
-    title: item.title,
-    title_ru: item.title_ru,
-    description: item.description || "Новый эпизод уже доступен для просмотра!",
-    cover_image_url: item.cover_image_url,
-    episode_number: "episode_number" in item ? item.episode_number : 1,
-    year: "year" in item ? item.year : 2025,
-    total_episodes: "total_episodes" in item ? item.total_episodes : 12,
-    rating: "rating" in item ? item.rating : "16+",
-  }))
+      ? featuredReleases.map((release) => ({
+          id: release.id,
+          release_id: release.id,
+          title: release.title,
+          title_ru: release.title_ru,
+          description: release.description || "Новый эпизод уже доступен для просмотра!",
+          cover_image_url: release.cover_image_url,
+          episode_number: 1,
+          year: release.year,
+          total_episodes: release.total_episodes,
+          rating: release.rating,
+        }))
+      : []
 
   return (
     <main className="min-h-screen bg-background">
       <div className="mx-auto max-w-7xl px-4 py-6 md:py-8 space-y-8 md:space-y-12">
-        <HeroCarousel slides={heroSlides} />
+        {heroSlides.length > 0 && <HeroCarousel slides={heroSlides} />}
 
         {continueWatching.length > 0 && (
           <section>
