@@ -3,7 +3,13 @@
 import { useState, useEffect } from "react"
 import { ListPlus, Check } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Select, SelectContent, SelectItem, SelectTrigger } from "@/components/ui/select"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu"
 import { useRouter } from "next/navigation"
 
 interface ListButtonProps {
@@ -40,7 +46,7 @@ export function ListButton({ releaseId, userId }: ListButtonProps) {
     checkStatus()
   }, [releaseId, userId])
 
-  const handleStatusChange = async (value: string) => {
+  const handleStatusChange = async (status: string) => {
     if (!userId) {
       router.push("/")
       return
@@ -48,8 +54,8 @@ export function ListButton({ releaseId, userId }: ListButtonProps) {
 
     setLoading(true)
     try {
-      if (value === "remove") {
-        // Remove from list
+      if (currentStatus === status) {
+        // Remove from list if clicking the same status
         await fetch(`/api/lists?releaseId=${releaseId}`, {
           method: "DELETE",
         })
@@ -59,9 +65,9 @@ export function ListButton({ releaseId, userId }: ListButtonProps) {
         await fetch("/api/lists", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ releaseId, status: value }),
+          body: JSON.stringify({ releaseId, status }),
         })
-        setCurrentStatus(value)
+        setCurrentStatus(status)
       }
     } catch (error) {
       console.error("Failed to update list:", error)
@@ -73,31 +79,33 @@ export function ListButton({ releaseId, userId }: ListButtonProps) {
   const currentStatusLabel = LIST_STATUSES.find((s) => s.value === currentStatus)?.label
 
   return (
-    <Select value={currentStatus || "none"} onValueChange={handleStatusChange} disabled={loading}>
-      <SelectTrigger asChild>
-        <Button size="lg" variant="outline" className="gap-2 bg-transparent min-w-[200px]">
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button size="lg" variant="outline" className="gap-2 bg-transparent" disabled={loading}>
           <ListPlus className="h-5 w-5" />
-          <span>{currentStatusLabel || "Добавить в список"}</span>
+          {currentStatusLabel || "Добавить в список"}
         </Button>
-      </SelectTrigger>
-      <SelectContent position="popper" sideOffset={5} className="w-[200px]">
-        <SelectItem value="none" disabled className="text-muted-foreground">
-          Выберите статус
-        </SelectItem>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-56">
         {LIST_STATUSES.map((status) => (
-          <SelectItem key={status.value} value={status.value}>
-            <div className="flex items-center justify-between w-full">
-              <span className={currentStatus === status.value ? status.color : ""}>{status.label}</span>
-              {currentStatus === status.value && <Check className="h-4 w-4 ml-2" />}
-            </div>
-          </SelectItem>
+          <DropdownMenuItem
+            key={status.value}
+            onClick={() => handleStatusChange(status.value)}
+            className="flex items-center justify-between cursor-pointer"
+          >
+            <span className={currentStatus === status.value ? status.color : ""}>{status.label}</span>
+            {currentStatus === status.value && <Check className="h-4 w-4" />}
+          </DropdownMenuItem>
         ))}
         {currentStatus && (
-          <SelectItem value="remove" className="text-destructive">
-            Удалить из списка
-          </SelectItem>
+          <>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => handleStatusChange(currentStatus)} className="text-destructive">
+              Удалить из списка
+            </DropdownMenuItem>
+          </>
         )}
-      </SelectContent>
-    </Select>
+      </DropdownMenuContent>
+    </DropdownMenu>
   )
 }
