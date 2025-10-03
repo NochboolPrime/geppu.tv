@@ -3,13 +3,7 @@
 import { useState, useEffect } from "react"
 import { ListPlus, Check } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-  DropdownMenuSeparator,
-} from "@/components/ui/dropdown-menu"
+import { Select, SelectContent, SelectItem, SelectTrigger } from "@/components/ui/select"
 import { useRouter } from "next/navigation"
 
 interface ListButtonProps {
@@ -46,7 +40,7 @@ export function ListButton({ releaseId, userId }: ListButtonProps) {
     checkStatus()
   }, [releaseId, userId])
 
-  const handleStatusChange = async (status: string) => {
+  const handleStatusChange = async (value: string) => {
     if (!userId) {
       router.push("/")
       return
@@ -54,8 +48,8 @@ export function ListButton({ releaseId, userId }: ListButtonProps) {
 
     setLoading(true)
     try {
-      if (currentStatus === status) {
-        // Remove from list if clicking the same status
+      if (value === "remove") {
+        // Remove from list
         await fetch(`/api/lists?releaseId=${releaseId}`, {
           method: "DELETE",
         })
@@ -65,9 +59,9 @@ export function ListButton({ releaseId, userId }: ListButtonProps) {
         await fetch("/api/lists", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ releaseId, status }),
+          body: JSON.stringify({ releaseId, status: value }),
         })
-        setCurrentStatus(status)
+        setCurrentStatus(value)
       }
     } catch (error) {
       console.error("Failed to update list:", error)
@@ -79,33 +73,31 @@ export function ListButton({ releaseId, userId }: ListButtonProps) {
   const currentStatusLabel = LIST_STATUSES.find((s) => s.value === currentStatus)?.label
 
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button size="lg" variant="outline" className="gap-2 bg-transparent" disabled={loading}>
+    <Select value={currentStatus || "none"} onValueChange={handleStatusChange} disabled={loading}>
+      <SelectTrigger asChild>
+        <Button size="lg" variant="outline" className="gap-2 bg-transparent min-w-[200px]">
           <ListPlus className="h-5 w-5" />
-          {currentStatusLabel || "Добавить в список"}
+          <span>{currentStatusLabel || "Добавить в список"}</span>
         </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-56">
+      </SelectTrigger>
+      <SelectContent position="popper" sideOffset={5} className="w-[200px]">
+        <SelectItem value="none" disabled className="text-muted-foreground">
+          Выберите статус
+        </SelectItem>
         {LIST_STATUSES.map((status) => (
-          <DropdownMenuItem
-            key={status.value}
-            onClick={() => handleStatusChange(status.value)}
-            className="flex items-center justify-between cursor-pointer"
-          >
-            <span className={currentStatus === status.value ? status.color : ""}>{status.label}</span>
-            {currentStatus === status.value && <Check className="h-4 w-4" />}
-          </DropdownMenuItem>
+          <SelectItem key={status.value} value={status.value}>
+            <div className="flex items-center justify-between w-full">
+              <span className={currentStatus === status.value ? status.color : ""}>{status.label}</span>
+              {currentStatus === status.value && <Check className="h-4 w-4 ml-2" />}
+            </div>
+          </SelectItem>
         ))}
         {currentStatus && (
-          <>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => handleStatusChange(currentStatus)} className="text-destructive">
-              Удалить из списка
-            </DropdownMenuItem>
-          </>
+          <SelectItem value="remove" className="text-destructive">
+            Удалить из списка
+          </SelectItem>
         )}
-      </DropdownMenuContent>
-    </DropdownMenu>
+      </SelectContent>
+    </Select>
   )
 }
