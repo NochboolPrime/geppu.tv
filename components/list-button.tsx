@@ -1,15 +1,9 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { ListPlus, Check } from "lucide-react"
+import { ListPlus, Check, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-  DropdownMenuSeparator,
-} from "@/components/ui/dropdown-menu"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { useRouter } from "next/navigation"
 
 interface ListButtonProps {
@@ -28,6 +22,7 @@ const LIST_STATUSES = [
 export function ListButton({ releaseId, userId }: ListButtonProps) {
   const [currentStatus, setCurrentStatus] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+  const [open, setOpen] = useState(false)
   const router = useRouter()
 
   useEffect(() => {
@@ -69,8 +64,26 @@ export function ListButton({ releaseId, userId }: ListButtonProps) {
         })
         setCurrentStatus(status)
       }
+      setOpen(false)
     } catch (error) {
       console.error("Failed to update list:", error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleRemove = async () => {
+    if (!userId || !currentStatus) return
+
+    setLoading(true)
+    try {
+      await fetch(`/api/lists?releaseId=${releaseId}`, {
+        method: "DELETE",
+      })
+      setCurrentStatus(null)
+      setOpen(false)
+    } catch (error) {
+      console.error("Failed to remove from list:", error)
     } finally {
       setLoading(false)
     }
@@ -79,33 +92,46 @@ export function ListButton({ releaseId, userId }: ListButtonProps) {
   const currentStatusLabel = LIST_STATUSES.find((s) => s.value === currentStatus)?.label
 
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
         <Button size="lg" variant="outline" className="gap-2 bg-transparent" disabled={loading}>
           <ListPlus className="h-5 w-5" />
           {currentStatusLabel || "Добавить в список"}
         </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-56">
-        {LIST_STATUSES.map((status) => (
-          <DropdownMenuItem
-            key={status.value}
-            onClick={() => handleStatusChange(status.value)}
-            className="flex items-center justify-between cursor-pointer"
-          >
-            <span className={currentStatus === status.value ? status.color : ""}>{status.label}</span>
-            {currentStatus === status.value && <Check className="h-4 w-4" />}
-          </DropdownMenuItem>
-        ))}
-        {currentStatus && (
-          <>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => handleStatusChange(currentStatus)} className="text-destructive">
-              Удалить из списка
-            </DropdownMenuItem>
-          </>
-        )}
-      </DropdownMenuContent>
-    </DropdownMenu>
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Добавить в список</DialogTitle>
+        </DialogHeader>
+        <div className="flex flex-col gap-2 py-4">
+          {LIST_STATUSES.map((status) => (
+            <Button
+              key={status.value}
+              onClick={() => handleStatusChange(status.value)}
+              variant={currentStatus === status.value ? "default" : "outline"}
+              className="w-full justify-between"
+              disabled={loading}
+            >
+              <span className={currentStatus === status.value ? "" : status.color}>{status.label}</span>
+              {currentStatus === status.value && <Check className="h-4 w-4" />}
+            </Button>
+          ))}
+          {currentStatus && (
+            <>
+              <div className="my-2 border-t" />
+              <Button
+                onClick={handleRemove}
+                variant="destructive"
+                className="w-full justify-between"
+                disabled={loading}
+              >
+                <span>Удалить из списка</span>
+                <X className="h-4 w-4" />
+              </Button>
+            </>
+          )}
+        </div>
+      </DialogContent>
+    </Dialog>
   )
 }
